@@ -760,14 +760,12 @@
 			return self.data;
 		};
 
-		self.prototype.to_image = function()
-		{
-			var self = this;
-			var image = new Image();
+	self.prototype.to_image = function()
+	{
+		var self = this;
+		self.update();
 
-			image.src = self.canvas.toDataURL();
-
-			return image;
+		return self.canvas;
 		};
 
 		return self;
@@ -928,8 +926,8 @@
 			}
 		};
 
-		self.prototype.to_image = function(color_map)
-		{
+	self.prototype.to_image = function(color_map)
+	{
 			var self = this;
 
 			var canvas = document.createElement('canvas');
@@ -972,11 +970,11 @@
 			ctx.clearRect(0, 0, self.width, self.height);
 			ctx.putImageData(data, 0, 0);
 
-			var image = new Image();
+		var bitmap = new Bitmap({ width: self.width, height: self.height });
+		bitmap.data = data;
+		bitmap.update();
 
-			image.src = canvas.toDataURL();
-
-			return image;
+		return bitmap;
 		};
 
 		self.prototype.get = function(x, y)
@@ -2294,7 +2292,7 @@
 			 	GOLD_COLOR
 			]);
 
-			self.foreground = new Bitmap({ image: material_image });
+			self.foreground = material_image;
 			self.foreground.noise(0.1);
 
 			self.fluids = [];
@@ -2537,11 +2535,22 @@ var MATERIAL_COLOR =
 
 var LEVEL_COUNT = 2;
 var LEVELS = [];
+var image_loads = [];
+
+function load_image(image, path)
+{
+	image_loads.push(new Promise(function(resolve, reject)
+	{
+		image.onload = resolve;
+		image.onerror = reject;
+		image.src = path;
+	}));
+}
 
 for (var i = 0; i < LEVEL_COUNT; i++)
 {
 	var img = new Image();
-	img.src = 'level' + (i + 1) + '.png';
+	load_image(img, 'level' + (i + 1) + '.png');
 
 	LEVELS.push(img);
 }
@@ -2549,9 +2558,9 @@ for (var i = 0; i < LEVEL_COUNT; i++)
 var parallax = new Image();
 
 var torso = new Image();
-torso.src = 'torso.png';
+load_image(torso, 'torso.png');
 var legs = new Image();
-legs.src = 'legs.png';
+load_image(legs, 'legs.png');
 
 var state = 'menu';
 
@@ -3103,6 +3112,8 @@ var player =
 
 window.onload = function()
 {
+	Promise.all(image_loads).then(function()
+	{
 	//level = new Level(LEVELS[1]);
 	//level = new Level({ image: material_image });
 	level = new Level(LEVELS);
@@ -3366,5 +3377,6 @@ window.onload = function()
 		}
 
 		final_layer.draw(game_layer.get_canvas());
+	});
 	});
 };
